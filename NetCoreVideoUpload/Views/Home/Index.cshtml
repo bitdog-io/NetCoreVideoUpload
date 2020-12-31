@@ -5,27 +5,45 @@
 }
 
 <div class="col-md-12">
+    <div class="col-md-3 form-check float-right border">
+        <form>
+            @* List amount of files that need to be converted to .mp4 if they are a video file (maybe use regex to find out) maybe a foreach statementto display the files that can be converted? *@
+            <label>This file can be converted: <strong>OldFileName</strong></label>
+            @* Maybe display number of items that can be converted? *@
+            <label>Number of items that can be converted: <strong>RandomNumber</strong></label>
+            @* Button to start Conversion *@
+            <label class="btn btn-block btn-danger">
+                Convert video files that are not .mp4
+            </label>
+        </form>
+    </div>
+
     @foreach (var item in Model)
     {
+        @* Display only the video files with the correct extension. *@
         if (item.Extension == ".mp4")
         {
 
-            <div class="form-check-inline">
-                <div class="card">
-                    <div class="card-body justify-content-center" style="height:auto;">
-                        <a class="card-title btn btn-block btn-outline-info">@item.VideoTitle</a>
-                        <a class="card-text">@item.Description</a>
-                        <br />
-                        <a>@item.VideoLength</a>
-                        <br />
-                        <video class="card-img" style="height:auto; width:600px;" controls>
-                            <source src="~/UploadedVideos/@item.FileName" type="video/mp4" />
-                        </video>
-                        <a class="card-footer form-inline">Video Type is: @item.Extension</a>
-                    </div>
+<div class="col-md-6">
+    <div class="form-check-inline">
+        <div class="card">
+            <div class="card-body justify-content-center" style="height:auto;">
+                <div class="btn-block text-center">
+                    <a class="card-title btn btn-outline-info">@item.VideoTitle</a>
                 </div>
-            </div>
+                <a class="card-text text-wrap">@item.Description</a>
 
+                <br />
+                <a>@item.VideoLength</a>
+                <br />
+                <video class="card-img" style="height:auto; width:600px;" controls>
+                    <source src="~/UploadedVideos/@item.FileName" type="video/mp4" />
+                </video>
+                <a class="card-footer form-inline">Video Type is: @item.Extension</a>
+            </div>
+        </div>
+    </div>
+</div>
         }
     }
 </div>
