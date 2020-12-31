@@ -5,10 +5,10 @@ using Microsoft.Extensions.Logging;
 using NetCoreVideoUpload.Data;
 using NetCoreVideoUpload.Models;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace NetCoreVideoUpload.Controllers
@@ -31,14 +31,38 @@ namespace NetCoreVideoUpload.Controllers
             List<Videos> model = await _context.Videos.ToListAsync();
             var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot\\UploadedVideos");
             string[] fileEntries = Directory.GetFiles(uploadPath);
-            for (int i = 0; i < model.Count; i++)
+            IEnumerable<Videos> notStored = model.Where(x => !fileEntries.Select(n => n).Contains(x.VideoPath));
+            var notStoredPhysical = fileEntries.Where(x => !model.Select(n => n.VideoPath).Contains(x));
+            if (notStoredPhysical.Count() > 0)
             {
-                // Check if the file currently exist in the upload folder
-                if (!fileEntries[].Contains(model[i].FileName))
+                Console.WriteLine("Removing: " + notStoredPhysical.Count() + " files from physical drive");
+                foreach (var file in notStoredPhysical)
                 {
-                    _context.Remove(model[i]);
-                    await _context.SaveChangesAsync();
+                    FileInfo fileCheck = new FileInfo(file);
+                    if (fileCheck.Exists)
+                    {
+                        fileCheck.Delete();
+                    }
+                }
+            }
+
+            if (notStored.Count() > 0)
+            {
+                Console.WriteLine("Removing: " + notStored.Count() + " items from the database.");
+                foreach (var file in notStored)
+                {
+                    Console.WriteLine("FileName: " + file.FileName);
+                    _context.Videos.Remove(file);
+                }
+                //_context.Videos.Remove(notStored.FirstOrDefault());
+                try
+                {
+                    _context.SaveChanges();
                     model = await _context.Videos.ToListAsync();
+                }
+                catch (Exception ex)
+                {
+                    throw;
                 }
             }
             return View(model);
@@ -65,29 +89,35 @@ namespace NetCoreVideoUpload.Controllers
         {
             if (model.UploadedFile != null && model.UploadedFile.Length > 0)
             {
-                var fileName = Path.GetFileName(model.UploadedFile.FileName);
-                var extension = Path.GetExtension(fileName);
-                var newFileName = string.Concat(Convert.ToString(Guid.NewGuid()), extension);
-                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot\\UploadedVideos", newFileName);
-
-                var videos = new Videos()
+                try
                 {
-                    Id = Guid.NewGuid(),
-                    Description = model.Description,
-                    Extension = extension,
-                    UploadDate = DateTime.Now,
-                    VideoTitle = model.VideoTitle,
-                    FileName = newFileName,
-                    VideoPath = uploadPath,
-                };
-                using (var stream = new FileStream(uploadPath, FileMode.Create))
-                {
-                    await model.UploadedFile.CopyToAsync(stream);
+                    var fileName = Path.GetFileName(model.UploadedFile.FileName);
+                    var extension = Path.GetExtension(fileName);
+                    var newFileName = string.Concat(Convert.ToString(Guid.NewGuid()), extension);
+                    var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot\\UploadedVideos", newFileName);
+                    using (var stream = new FileStream(uploadPath, FileMode.Create))
+                    {
+                        await model.UploadedFile.CopyToAsync(stream);
+                    }
+                    var videos = new Videos()
+                    {
+                        Id = Guid.NewGuid(),
+                        Description = model.Description,
+                        Extension = extension,
+                        UploadDate = DateTime.Now,
+                        VideoTitle = model.VideoTitle,
+                        FileName = newFileName,
+                        OldFileName = fileName,
+                        VideoPath = uploadPath,
+                    };
+                    await _context.Videos.AddAsync(videos);
+                    await _context.SaveChangesAsync();
+                    return RedirectToAction(nameof(Index));
                 }
-
-                await _context.Videos.AddAsync(videos);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                catch (Exception ex)
+                {
+                    throw;
+                }
             }
             return View(model);
         }

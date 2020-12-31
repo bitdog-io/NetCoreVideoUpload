@@ -13,6 +13,7 @@ namespace NetCoreVideoUpload.Models
         [Required]
         public string VideoTitle { get; set; }
         public string FileName { get; set; }
+        public string OldFileName { get; set; }
         public string Description { get; set; }
         [Required]
         public string VideoPath { get; set; }

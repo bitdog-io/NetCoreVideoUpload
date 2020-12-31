@@ -34,6 +34,9 @@ namespace NetCoreVideoUpload.Migrations
                     b.Property<string>("FileName")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("OldFileName")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("UploadDate")
                         .HasColumnType("datetime2");
 

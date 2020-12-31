@@ -34,6 +34,7 @@ public class UploadVideosVM
     public class ViewVideoVM
     {
         public string VideoTitle { get; set; }
+        public string FileName { get; set; }
         public string Description { get; set; }
         public string VideoLength { get; set; }
         public string Extension { get; set; }
