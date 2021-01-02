@@ -5,16 +5,30 @@
 }
 
 <div class="col-md-12">
-    <div class="col-md-3 form-check float-right border">
-        <form>
+    <div class="col-md-4 form-check float-right border">
+        <form asp-action="StartConversion">
             @* List amount of files that need to be converted to .mp4 if they are a video file (maybe use regex to find out) maybe a foreach statementto display the files that can be converted? *@
-            <label>This file can be converted: <strong>OldFileName</strong></label>
+            <div class="form-group">
+                <label>
+                    These files can be converted to mp4:
+                    @foreach (var item in Model)
+                    {
+                        if (item.Extension != ".mp4")
+                        {
+                            <br />
+                            <strong>@item.VideoTitle</strong>
+                        }
+                    }
+                </label>
+            </div>
             @* Maybe display number of items that can be converted? *@
-            <label>Number of items that can be converted: <strong>RandomNumber</strong></label>
+            <div class="form-group">
+                <label>Number of items that can be converted: <strong>@Model.Count(x => x.Extension != ".mp4")</strong></label>
+            </div>
             @* Button to start Conversion *@
-            <label class="btn btn-block btn-danger">
-                Convert video files that are not .mp4
-            </label>
+            <div class="form-group" >
+                <button  name="Start" asp-action="StartConversion" class="btn btn-danger">Start Conversion</button>
+            </div>
         </form>
     </div>
 
@@ -24,26 +38,40 @@
         if (item.Extension == ".mp4")
         {
 
-<div class="col-md-6">
-    <div class="form-check-inline">
-        <div class="card">
-            <div class="card-body justify-content-center" style="height:auto;">
-                <div class="btn-block text-center">
-                    <a class="card-title btn btn-outline-info">@item.VideoTitle</a>
+            <div class="col-md-6">
+                <div class="form-check-inline">
+                    <div class="card" style="width:600px;">
+                        <video class="card-header" src="~/UploadedVideos/@item.FileName" style="height:auto; width:inherit;" type="video/mp4" controls>
+                        </video>
+                        <div class="card-body">
+                            <div class="btn-block text-center">
+                                <h5 class="card-title">@item.VideoTitle</h5>
+                            </div>
+                            <button onclick="Toggle()" class="btn btn-danger">See More</button>
+                            <div id="ToggleDescriptionSmall">Video Description</div>
+                            <p id="ToggleDescriptionBig" class="card-text text-wrap text-hide">@item.Description</p>
+                            <p class="card-footer form-inline">Video Type is: @item.Extension</p>
+                            <a href="#" class="btn btn-primary">Download Video</a>
+                        </div>
+                    </div>
                 </div>
-                <a class="card-text text-wrap">@item.Description</a>
-
-                <br />
-                <a>@item.VideoLength</a>
-                <br />
-                <video class="card-img" style="height:auto; width:600px;" controls>
-                    <source src="~/UploadedVideos/@item.FileName" type="video/mp4" />
-                </video>
-                <a class="card-footer form-inline">Video Type is: @item.Extension</a>
             </div>
-        </div>
-    </div>
-</div>
+
         }
     }
 </div>
+
+<script>
+    function Toggle() {
+        var x = document.getElementById("ToggleDescriptionSmall");
+        var y = document.getElementById("ToggleDescriptionBig");
+        if (!x.classList.contains("text-hide")) {
+            x.classList.add("text-hide");
+            y.classList.remove("text-hide");
+        } else {
+            x.classList.remove("text-hide");
+            y.classList.add("text-hide");
+        }
+
+    }
+</script>

@@ -5,11 +5,13 @@ using Microsoft.Extensions.Logging;
 using NetCoreVideoUpload.Data;
 using NetCoreVideoUpload.Models;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Xabe.FFmpeg;
 
 namespace NetCoreVideoUpload.Controllers
 {
@@ -41,7 +43,15 @@ namespace NetCoreVideoUpload.Controllers
                     FileInfo fileCheck = new FileInfo(file);
                     if (fileCheck.Exists)
                     {
-                        fileCheck.Delete();
+                        try
+                        {
+                            Console.WriteLine("Removing: " + fileCheck.Name);
+                            fileCheck.Delete();
+                        }
+                        catch (Exception ex)
+                        {
+                            throw;
+                        }
                     }
                 }
             }
@@ -54,7 +64,6 @@ namespace NetCoreVideoUpload.Controllers
                     Console.WriteLine("FileName: " + file.FileName);
                     _context.Videos.Remove(file);
                 }
-                //_context.Videos.Remove(notStored.FirstOrDefault());
                 try
                 {
                     _context.SaveChanges();
@@ -66,6 +75,42 @@ namespace NetCoreVideoUpload.Controllers
                 }
             }
             return View(model);
+        }
+
+        public async Task<IActionResult> StartConversion(string Start)
+        {
+            var FilesToConvert = _context.Videos.ToList().Where(x => x.Extension != ".mp4");
+            if (FilesToConvert.Any())
+            {
+                Console.WriteLine("Starting conversion on: " + FilesToConvert.FirstOrDefault().FileName + " files");
+                var fileToConvert = FilesToConvert.FirstOrDefault();
+                string oldFileName = Path.GetFileName(fileToConvert.FileName);
+                string newFileName = Path.ChangeExtension(oldFileName, ".mp4").ToString();
+                string outputPath = Path.ChangeExtension(fileToConvert.VideoPath, ".mp4");
+                var conversion = Conversion.ToMp4(fileToConvert.VideoPath, outputPath).SetOverwriteOutput(true).UseMultiThread(2);
+                conversion.OnProgress += async (sender, args) =>
+                {
+                    await Console.Out.WriteLineAsync($"[{args.Duration}/{args.TotalLength}][{args.Percent}%] {fileToConvert.FileName}");
+                };
+                await conversion.Start();
+                await Console.Out.WriteLineAsync($"Finished converting file [{oldFileName}] to [{newFileName}]");
+                try
+                {
+                    fileToConvert.FileName = newFileName;
+                    fileToConvert.VideoPath = outputPath;
+                    fileToConvert.Extension = Path.GetExtension(newFileName);
+                    _context.Videos.Update(fileToConvert);
+                    _context.SaveChanges();
+                }
+                catch (Exception ex)
+                {
+
+                    throw;
+                }
+
+            }
+
+            return RedirectToAction(nameof(Index));
         }
 
         public IActionResult Privacy()
