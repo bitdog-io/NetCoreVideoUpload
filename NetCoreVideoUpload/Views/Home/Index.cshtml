@@ -26,8 +26,8 @@
                 <label>Number of items that can be converted: <strong>@Model.Count(x => x.Extension != ".mp4")</strong></label>
             </div>
             @* Button to start Conversion *@
-            <div class="form-group" >
-                <button  name="Start" asp-action="StartConversion" class="btn btn-danger">Start Conversion</button>
+            <div class="form-group">
+                <button name="Start" asp-action="StartConversion" class="btn btn-danger">Start Conversion</button>
             </div>
         </form>
     </div>
@@ -47,11 +47,9 @@
                             <div class="btn-block text-center">
                                 <h5 class="card-title">@item.VideoTitle</h5>
                             </div>
-                            <button onclick="Toggle()" class="btn btn-danger">See More</button>
-                            <div id="ToggleDescriptionSmall">Video Description</div>
-                            <p id="ToggleDescriptionBig" class="card-text text-wrap text-hide">@item.Description</p>
+                            <div id="@item.Id" class="card-text text-wrap text-hide">@item.Description</div>
                             <p class="card-footer form-inline">Video Type is: @item.Extension</p>
-                            <a href="#" class="btn btn-primary">Download Video</a>
+                            <a asp-route-id="@item.Id" asp-action="StartDownload" class="btn btn-primary">Download Video</a>
                         </div>
                     </div>
                 </div>
@@ -61,17 +59,3 @@
     }
 </div>
 
-<script>
-    function Toggle() {
-        var x = document.getElementById("ToggleDescriptionSmall");
-        var y = document.getElementById("ToggleDescriptionBig");
-        if (!x.classList.contains("text-hide")) {
-            x.classList.add("text-hide");
-            y.classList.remove("text-hide");
-        } else {
-            x.classList.remove("text-hide");
-            y.classList.add("text-hide");
-        }
-
-    }
-</script>

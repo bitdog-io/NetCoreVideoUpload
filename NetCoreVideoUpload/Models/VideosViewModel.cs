@@ -1,10 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace NetCoreVideoUpload.Models
 {
@@ -18,15 +14,16 @@ namespace NetCoreVideoUpload.Models
         public string Extension { get; set; }
         public DateTime UploadDate { get; set; }
         public Videos GetVideos { get; set; }
+    }
 
-}
-
-public class UploadVideosVM
+    public class UploadVideosVM
     {
         [Required(ErrorMessage = "Please enter a title for the video you're uploading")]
         public string VideoTitle { get; set; }
+
         [Display(Name = "Please enter a video description ( Optional )")]
         public string Description { get; set; }
+
         [Required(ErrorMessage = "Please select a file")]
         public IFormFile UploadedFile { get; set; }
     }
@@ -40,6 +37,5 @@ public class UploadVideosVM
         public string Extension { get; set; }
         public DateTime UploadDate { get; set; }
         public Videos GetVideos { get; set; }
-
     }
 }

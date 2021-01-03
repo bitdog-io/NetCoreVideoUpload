@@ -21,7 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="wwwroot\DownloadVideos\" />
     <Folder Include="wwwroot\UploadedVideos\" />
   </ItemGroup>
 

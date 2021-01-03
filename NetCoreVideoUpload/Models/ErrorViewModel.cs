@@ -1,5 +1,3 @@
-using System;
-
 namespace NetCoreVideoUpload.Models
 {
     public class ErrorViewModel

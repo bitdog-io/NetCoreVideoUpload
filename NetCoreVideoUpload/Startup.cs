@@ -1,17 +1,10 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using NetCoreVideoUpload.Data;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace NetCoreVideoUpload
 {
@@ -27,8 +20,6 @@ namespace NetCoreVideoUpload
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddSingleton<IFileProvider>(
-                new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot\\DownloadVideos")));
             services.AddControllersWithViews().AddRazorRuntimeCompilation();
             services.AddDbContext<VideoDbContext>(options => options.UseSqlServer(Configuration.GetConnectionString("VideoUploadContext")));
         }

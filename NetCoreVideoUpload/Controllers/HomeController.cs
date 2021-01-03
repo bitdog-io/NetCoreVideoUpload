@@ -5,11 +5,11 @@ using Microsoft.Extensions.Logging;
 using NetCoreVideoUpload.Data;
 using NetCoreVideoUpload.Models;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using Xabe.FFmpeg;
 
@@ -31,17 +31,16 @@ namespace NetCoreVideoUpload.Controllers
         public async Task<IActionResult> Index()
         {
             List<Videos> model = await _context.Videos.ToListAsync();
-            var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot\\UploadedVideos");
+            var uploadPath = Path.GetDirectoryName(model.FirstOrDefault().VideoPath);
             string[] fileEntries = Directory.GetFiles(uploadPath);
-            IEnumerable<Videos> notStored = model.Where(x => !fileEntries.Select(n => n).Contains(x.VideoPath));
             var notStoredPhysical = fileEntries.Where(x => !model.Select(n => n.VideoPath).Contains(x));
-            if (notStoredPhysical.Count() > 0)
+            if (notStoredPhysical.Any())
             {
-                Console.WriteLine("Removing: " + notStoredPhysical.Count() + " files from physical drive");
+                Console.WriteLine("Trying to remove: " + notStoredPhysical.Count() + " files from physical drive");
                 foreach (var file in notStoredPhysical)
                 {
                     FileInfo fileCheck = new FileInfo(file);
-                    if (fileCheck.Exists)
+                    if (fileCheck.Exists && fileCheck.LastAccessTime.AddMinutes(5) < DateTime.Now)
                     {
                         try
                         {
@@ -53,10 +52,15 @@ namespace NetCoreVideoUpload.Controllers
                             throw;
                         }
                     }
+                    else
+                    {
+                        Console.WriteLine("Failed");
+                    }
                 }
             }
 
-            if (notStored.Count() > 0)
+            IEnumerable<Videos> notStored = model.Where(x => !fileEntries.Select(n => n).Contains(x.VideoPath));
+            if (notStored.Any())
             {
                 Console.WriteLine("Removing: " + notStored.Count() + " items from the database.");
                 foreach (var file in notStored)
@@ -77,6 +81,16 @@ namespace NetCoreVideoUpload.Controllers
             return View(model);
         }
 
+        public async Task<IActionResult> StartDownload(Videos videoId)
+        {
+            var fileToDown = await _context.Videos.FirstOrDefaultAsync(x => x.Id.Equals(videoId.Id));
+            string fileName = string.Concat(fileToDown.VideoTitle, fileToDown.Extension);
+            var data = new WebClient().DownloadData(fileToDown.VideoPath);
+            var content = new MemoryStream(data);
+            var contentType = "Video/mp4";
+            return File(content, contentType, fileName);
+        }
+
         public async Task<IActionResult> StartConversion(string Start)
         {
             var FilesToConvert = _context.Videos.ToList().Where(x => x.Extension != ".mp4");
@@ -84,32 +98,25 @@ namespace NetCoreVideoUpload.Controllers
             {
                 Console.WriteLine("Starting conversion on: " + FilesToConvert.FirstOrDefault().FileName + " files");
                 var fileToConvert = FilesToConvert.FirstOrDefault();
+                string oldStoragePath = fileToConvert.VideoPath;
                 string oldFileName = Path.GetFileName(fileToConvert.FileName);
                 string newFileName = Path.ChangeExtension(oldFileName, ".mp4").ToString();
                 string outputPath = Path.ChangeExtension(fileToConvert.VideoPath, ".mp4");
                 var conversion = Conversion.ToMp4(fileToConvert.VideoPath, outputPath).SetOverwriteOutput(true).UseMultiThread(2);
-                conversion.OnProgress += async (sender, args) =>
-                {
-                    await Console.Out.WriteLineAsync($"[{args.Duration}/{args.TotalLength}][{args.Percent}%] {fileToConvert.FileName}");
-                };
-                await conversion.Start();
-                await Console.Out.WriteLineAsync($"Finished converting file [{oldFileName}] to [{newFileName}]");
-                try
-                {
-                    fileToConvert.FileName = newFileName;
-                    fileToConvert.VideoPath = outputPath;
-                    fileToConvert.Extension = Path.GetExtension(newFileName);
-                    _context.Videos.Update(fileToConvert);
-                    _context.SaveChanges();
-                }
-                catch (Exception ex)
-                {
-
-                    throw;
-                }
-
+                await Task.Run(() => conversion.OnProgress += async (sender, args) =>
+               {
+                   await Console.Out.WriteLineAsync($"[{args.Duration}/{args.TotalLength}][{args.Percent}%] {fileToConvert.FileName}");
+               });
+                fileToConvert.FileName = newFileName;
+                fileToConvert.VideoPath = outputPath;
+                fileToConvert.Extension = Path.GetExtension(newFileName);
+                _context.Videos.Update(fileToConvert);
+                await _context.SaveChangesAsync();
+                Task<IConversionResult> task = Task.Run(async () => await conversion.Start());
+                Console.WriteLine("Conversion took: " + task.Result.Duration);
+                FileInfo file = new FileInfo(Path.GetFullPath(oldStoragePath));
+                file.Delete();
             }
-
             return RedirectToAction(nameof(Index));
         }
 
