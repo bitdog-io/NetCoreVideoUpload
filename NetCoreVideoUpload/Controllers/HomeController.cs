@@ -31,58 +31,64 @@ namespace NetCoreVideoUpload.Controllers
         public async Task<IActionResult> Index()
         {
             // Query the Database for all the videos stored
-            List<Videos> model = await _context.Videos.ToListAsync();
-            // Get the uploadpath/Directory
-            string uploadPath = Path.GetDirectoryName(model.FirstOrDefault().VideoPath);
-            // Get all the files stored in the uploadpath/directory
-            string[] fileEntries = Directory.GetFiles(uploadPath);
-            // Check if there is any files stored in the Database that is not stored physically
-            var notStoredPhysical = fileEntries.Where(x => !model.Select(n => n.VideoPath).Contains(x));
-            if (notStoredPhysical.Any())
+            List<Videos> videoList = await _context.Videos.ToListAsync();
+
+            if (videoList.Count() > 1)
             {
-                Console.WriteLine("Trying to remove: " + notStoredPhysical.Count() + " files from physical drive");
-                foreach (var file in notStoredPhysical)
+                // Get the uploadpath/Directory
+                string uploadPath = Path.GetDirectoryName(videoList.FirstOrDefault().VideoPath);
+                // Get all the files stored in the uploadpath/directory
+                string[] fileEntries = Directory.GetFiles(uploadPath);
+                // Check if there is any files stored in the Database that is not stored physically
+                var notStoredPhysical = fileEntries.Where(x => !videoList.Select(n => n.VideoPath).Contains(x));
+                if (notStoredPhysical.Any())
                 {
-                    FileInfo fileCheck = new FileInfo(file);
-                    if (fileCheck.Exists && fileCheck.LastAccessTime.AddMinutes(5) < DateTime.Now)
+                    _logger.LogInformation("Trying to remove: " + notStoredPhysical.Count() + " files from physical drive");
+                    foreach (var file in notStoredPhysical)
                     {
-                        try
+                        FileInfo fileCheck = new FileInfo(file);
+                        if (fileCheck.Exists && fileCheck.LastAccessTime.AddMinutes(5) < DateTime.Now)
                         {
-                            Console.WriteLine("Removing: " + fileCheck.Name);
-                            fileCheck.Delete();
+                            try
+                            {
+                                _logger.LogInformation("Removing: " + fileCheck.Name);
+                                fileCheck.Delete();
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex.ToString());
+                                throw;
+                            }
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            throw;
+                            _logger.LogError("Failed");
                         }
                     }
-                    else
+                }
+                // Check if there is any files stored physically that is not in the database
+                IEnumerable<Videos> notStored = videoList.Where(x => !fileEntries.Select(n => n).Contains(x.VideoPath));
+                if (notStored.Any())
+                {
+                    Console.WriteLine("Removing: " + notStored.Count() + " items from the database.");
+                    foreach (var file in notStored)
                     {
-                        Console.WriteLine("Failed");
+                        _logger.LogInformation("FileName: " + file.FileName);
+                        _context.Videos.Remove(file);
+                    }
+                    try
+                    {
+                        _context.SaveChanges();
+                        videoList = await _context.Videos.ToListAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex.ToString());
+                        throw;
                     }
                 }
             }
-            // Check if there is any files stored physically that is not in the database
-            IEnumerable<Videos> notStored = model.Where(x => !fileEntries.Select(n => n).Contains(x.VideoPath));
-            if (notStored.Any())
-            {
-                Console.WriteLine("Removing: " + notStored.Count() + " items from the database.");
-                foreach (var file in notStored)
-                {
-                    Console.WriteLine("FileName: " + file.FileName);
-                    _context.Videos.Remove(file);
-                }
-                try
-                {
-                    _context.SaveChanges();
-                    model = await _context.Videos.ToListAsync();
-                }
-                catch (Exception ex)
-                {
-                    throw;
-                }
-            }
-            return View(model);
+            return View(videoList);
         }
 
         public async Task<IActionResult> StartDownload(Videos videoId)
@@ -131,8 +137,9 @@ namespace NetCoreVideoUpload.Controllers
                     FileInfo file = new FileInfo(Path.GetFullPath(oldStoragePath));
                     file.Delete();
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    _logger.LogError(ex.ToString());
                     throw;
                 }
             }
@@ -159,7 +166,7 @@ namespace NetCoreVideoUpload.Controllers
         public async Task<IActionResult> Upload(UploadVideosVM model)
         {
             // Get if model contains any information/files
-            if (model.UploadedFile != null && model.UploadedFile.Length > 0)
+            if ( model?.UploadedFile != null && model.UploadedFile.Length > 0)
             {
                 try
                 {
@@ -195,6 +202,7 @@ namespace NetCoreVideoUpload.Controllers
                 }
                 catch (Exception ex)
                 {
+                    _logger.LogError(ex.ToString());
                     throw;
                 }
             }

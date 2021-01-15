@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +23,12 @@ namespace NetCoreVideoUpload
         {
             services.AddControllersWithViews().AddRazorRuntimeCompilation();
             services.AddDbContext<VideoDbContext>(options => options.UseSqlServer(Configuration.GetConnectionString("VideoUploadContext")));
+            services.Configure<FormOptions>(x =>
+            {
+                x.ValueLengthLimit = int.MaxValue;
+                x.MultipartBodyLengthLimit = int.MaxValue; // In case of multipart
+                x.ValueLengthLimit = int.MaxValue;
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
