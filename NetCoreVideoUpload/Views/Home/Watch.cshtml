@@ -1,0 +1,36 @@
+﻿@model IEnumerable<NetCoreVideoUpload.Models.Videos>
+
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="col-md-12">
+    
+    @foreach (var item in Model)
+    {
+        @* Display only the video files with the correct extension. *@
+
+        <div class="col-md-10">
+            <div class="form-check-inline">
+                <div class="card" style="width: 100%">
+
+                    @if ( item.Extension.ToLower() == ".mp4" || item.Extension.ToLower() == ".mpeg" || item.Extension.ToLower() == ".mov" || item.Extension.ToLower() == ".ogg")
+                    {
+                        <video  class="card-header" src="~/UploadedVideos/@item.FileName" style="height:auto; width:inherit;" type="video/mp4" controls>
+                        </video>
+                    } else
+                    {
+                        <img  src="~/UploadedVideos/@item.FileName" style="height:auto; width:inherit;" />
+                    }
+                    <div class="card-body">
+                        <div class="btn-block text-center">
+                            <h5 class="card-title">@item.VideoTitle</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+   }
+</div>
+

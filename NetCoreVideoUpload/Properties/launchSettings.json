@@ -3,7 +3,7 @@
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
     "iis": {
-      "applicationUrl": "http://localhost",
+      "applicationUrl": "http://orchardparksoftware.com",
       "sslPort": 0
     },
     "iisExpress": {

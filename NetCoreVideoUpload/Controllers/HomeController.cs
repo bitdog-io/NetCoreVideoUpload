@@ -15,9 +15,10 @@ using Xabe.FFmpeg;
 
 namespace NetCoreVideoUpload.Controllers
 {
+    [RequireHttps]
     public class HomeController : Controller
     {
-        private readonly VideoDbContext _context;
+        private readonly VideoDbContext _context;w
         private readonly ILogger<HomeController> _logger;
 
         public HomeController(
@@ -28,10 +29,10 @@ namespace NetCoreVideoUpload.Controllers
             _context = videoDbContext;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Watch()
         {
             // Query the Database for all the videos stored
-            List<Videos> videoList = await _context.Videos.ToListAsync();
+            List<Videos> videoList = await (from dbVideo in _context.Videos orderby dbVideo.UploadDate descending select dbVideo).ToListAsync();
 
             if (videoList.Count() > 1)
             {
@@ -52,7 +53,7 @@ namespace NetCoreVideoUpload.Controllers
                             try
                             {
                                 _logger.LogInformation("Removing: " + fileCheck.Name);
-                                fileCheck.Delete();
+                                //fileCheck.Delete(); --- lets not do this yet :-)
                             }
                             catch (Exception ex)
                             {
@@ -91,65 +92,60 @@ namespace NetCoreVideoUpload.Controllers
             return View(videoList);
         }
 
-        public async Task<IActionResult> StartDownload(Videos videoId)
-        {
-            // Get filepath to the file that was requested
-            Videos fileToDown = await _context.Videos.FirstOrDefaultAsync(x => x.Id.Equals(videoId.Id));
-            // Create the FileName for the file that was requested
-            string fileName = string.Concat(fileToDown.VideoTitle, fileToDown.Extension);
-            byte[] data = new WebClient().DownloadData(fileToDown.VideoPath);
-            Stream content = new MemoryStream(data);
-            string contentType = "Video/mp4";
-            // Return the file
-            return File(content, contentType, fileName);
-        }
+        //public async Task<IActionResult> StartDownload(Videos videoId)
+        //{
+        //    // Get filepath to the file that was requested
+        //    Videos fileToDown = await _context.Videos.FirstOrDefaultAsync(x => x.Id.Equals(videoId.Id));
+        //    // Create the FileName for the file that was requested
+        //    string fileName = string.Concat(fileToDown.VideoTitle, fileToDown.Extension);
+        //    byte[] data = new WebClient().DownloadData(fileToDown.VideoPath);
+        //    Stream content = new MemoryStream(data);
+        //    string contentType = "Video/mp4";
+        //    // Return the file
+        //    return File(content, contentType, fileName);
+        //}
 
-        public async Task<IActionResult> StartConversion(string Start)
-        {
-            // Get for files that need to be converted
-            var FilesToConvert = _context.Videos.ToList().Where(x => x.Extension != ".mp4");
-            if (FilesToConvert.Any())
-            {
-                Console.WriteLine("Starting conversion on: " + FilesToConvert.FirstOrDefault().FileName + " files");
-                // Get Information about the file that is about to be converted
-                var fileToConvert = FilesToConvert.FirstOrDefault();
-                string oldStoragePath = fileToConvert.VideoPath;
-                string oldFileName = Path.GetFileName(fileToConvert.FileName);
-                string newFileName = Path.ChangeExtension(oldFileName, ".mp4").ToString();
-                string outputPath = Path.ChangeExtension(fileToConvert.VideoPath, ".mp4");
-                // Define Conversion parameters
-                var conversion = Conversion.ToMp4(fileToConvert.VideoPath, outputPath).SetOverwriteOutput(true).UseMultiThread(2);
-                conversion.OnProgress += (async (sender, args) =>
-                {
-                    await Console.Out.WriteLineAsync($"[{args.Duration}/{args.TotalLength}][{args.Percent}%] {fileToConvert.FileName}");
-                });
-                // Launch Conversion
-                await conversion.Start();
-                // Update the database with information about the new file
-                fileToConvert.FileName = newFileName;
-                fileToConvert.VideoPath = outputPath;
-                fileToConvert.Extension = Path.GetExtension(newFileName);
-                _context.Videos.Update(fileToConvert);
-                await _context.SaveChangesAsync();
-                try
-                {
-                    // Try to delete the old file that got converted
-                    FileInfo file = new FileInfo(Path.GetFullPath(oldStoragePath));
-                    file.Delete();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex.ToString());
-                    throw;
-                }
-            }
-            return RedirectToAction(nameof(Index));
-        }
-
-        public IActionResult Privacy()
-        {
-            return View();
-        }
+        //public async Task<IActionResult> StartConversion(string Start)
+        //{
+        //    // Get for files that need to be converted
+        //    var FilesToConvert = _context.Videos.ToList().Where(x => x.Extension != ".mp4");
+        //    if (FilesToConvert.Any())
+        //    {
+        //        Console.WriteLine("Starting conversion on: " + FilesToConvert.FirstOrDefault().FileName + " files");
+        //        // Get Information about the file that is about to be converted
+        //        var fileToConvert = FilesToConvert.FirstOrDefault();
+        //        string oldStoragePath = fileToConvert.VideoPath;
+        //        string oldFileName = Path.GetFileName(fileToConvert.FileName);
+        //        string newFileName = Path.ChangeExtension(oldFileName, ".mp4").ToString();
+        //        string outputPath = Path.ChangeExtension(fileToConvert.VideoPath, ".mp4");
+        //        // Define Conversion parameters
+        //        var conversion = Conversion.ToMp4(fileToConvert.VideoPath, outputPath).SetOverwriteOutput(true).UseMultiThread(2);
+        //        conversion.OnProgress += (async (sender, args) =>
+        //        {
+        //            await Console.Out.WriteLineAsync($"[{args.Duration}/{args.TotalLength}][{args.Percent}%] {fileToConvert.FileName}");
+        //        });
+        //        // Launch Conversion
+        //        await conversion.Start();
+        //        // Update the database with information about the new file
+        //        fileToConvert.FileName = newFileName;
+        //        fileToConvert.VideoPath = outputPath;
+        //        fileToConvert.Extension = Path.GetExtension(newFileName);
+        //        _context.Videos.Update(fileToConvert);
+        //        await _context.SaveChangesAsync();
+        //        try
+        //        {
+        //            // Try to delete the old file that got converted
+        //            FileInfo file = new FileInfo(Path.GetFullPath(oldStoragePath));
+        //            file.Delete();
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            _logger.LogError(ex.ToString());
+        //            throw;
+        //        }
+        //    }
+        //    return RedirectToAction(nameof(Index));
+        //}
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
@@ -157,13 +153,13 @@ namespace NetCoreVideoUpload.Controllers
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
 
-        public IActionResult Upload()
+        public IActionResult Index()
         {
             return View();
         }
 
         [HttpPost]
-        public async Task<IActionResult> Upload(UploadVideosVM model)
+        public async Task<IActionResult> Index(UploadVideosVM model)
         {
             // Get if model contains any information/files
             if ( model?.UploadedFile != null && model.UploadedFile.Length > 0)
@@ -190,7 +186,7 @@ namespace NetCoreVideoUpload.Controllers
                         Description = model.Description,
                         Extension = extension,
                         UploadDate = DateTime.Now,
-                        VideoTitle = model.VideoTitle,
+                        VideoTitle = fileName, //model.VideoTitle,
                         FileName = newFileName,
                         OldFileName = fileName,
                         VideoPath = uploadPath,
@@ -198,7 +194,7 @@ namespace NetCoreVideoUpload.Controllers
                     // Add and save the changes to the database
                     await _context.Videos.AddAsync(videos);
                     await _context.SaveChangesAsync();
-                    return RedirectToAction(nameof(Index));
+                    return RedirectToActionPermanent(nameof(ThankYou));
                 }
                 catch (Exception ex)
                 {
@@ -206,7 +202,14 @@ namespace NetCoreVideoUpload.Controllers
                     throw;
                 }
             }
+
             return View(model);
         }
+
+        public IActionResult ThankYou()
+        {
+            return View();
+        }
+
     }
 }

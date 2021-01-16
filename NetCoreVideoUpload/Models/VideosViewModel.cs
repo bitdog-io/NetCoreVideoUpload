@@ -18,7 +18,7 @@ namespace NetCoreVideoUpload.Models
 
     public class UploadVideosVM
     {
-        [Required(ErrorMessage = "Please enter a title for the video you're uploading")]
+       // [Required(ErrorMessage = "Please enter a title for the video you're uploading")]
         public string VideoTitle { get; set; }
 
         [Display(Name = "Please enter a video description ( Optional )")]

@@ -1,61 +1,41 @@
-﻿@model IEnumerable<NetCoreVideoUpload.Models.Videos>
+﻿@model NetCoreVideoUpload.Models.UploadVideosVM
 
 @{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Upload";
 }
 
-<div class="col-md-12">
-    <div class="col-md-4 form-check float-right border">
-        <form asp-action="StartConversion">
-            @* List amount of files that need to be converted to .mp4 if they are a video file (maybe use regex to find out) maybe a foreach statementto display the files that can be converted? *@
-            <div class="form-group">
-                <label>
-                    These files can be converted to mp4:
-                    @foreach (var item in Model)
-                    {
-                        if (item.Extension != ".mp4")
-                        {
-                            <br />
-                            <strong>@item.VideoTitle</strong>
-                        }
-                    }
-                </label>
-            </div>
-            @* Maybe display number of items that can be converted? *@
-            <div class="form-group">
-                <label>Number of items that can be converted: <strong>@Model.Count(x => x.Extension != ".mp4")</strong></label>
-            </div>
-            @* Button to start Conversion *@
-            <div class="form-group">
-                <button name="Start" asp-action="StartConversion" class="btn btn-danger">Start Conversion</button>
-            </div>
+
+<div id="message" class="row"  style=" background-color: #1B75BB;color: white;font-size:24px;border-radius: 30px; padding:20px;">
+        Please upload a video message and/or picture wishing Burt well in his retirement.
+        <form id="uploadForm" asp-action="Index" enctype="multipart/form-data">
+            <label class="btn btn-light" style="font-size:24px; border-radius: 10px; margin:20px;" for="UploadedFile">Click here to upload</label>
+            <input asp-for="UploadedFile" type="file" style="display:none" accept=".mp4,.mpeg,.jpeg,.jpg,.png,.mov,.ogg" onchange="fileSelected()" />
         </form>
-    </div>
-
-    @foreach (var item in Model)
-    {
-        @* Display only the video files with the correct extension. *@
-        if (item.Extension == ".mp4")
-        {
-
-            <div class="col-md-6">
-                <div class="form-check-inline">
-                    <div class="card" style="width:600px;">
-                        <video class="card-header" src="~/UploadedVideos/@item.FileName" style="height:auto; width:inherit;" type="video/mp4" controls>
-                        </video>
-                        <div class="card-body">
-                            <div class="btn-block text-center">
-                                <h5 class="card-title">@item.VideoTitle</h5>
-                            </div>
-                            <div id="@item.Id" class="card-text text-wrap text-hide">@item.Description</div>
-                            <p class="card-footer form-inline">Video Type is: @item.Extension</p>
-                            <a asp-route-id="@item.Id" asp-action="StartDownload" class="btn btn-primary">Download Video</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        }
-    }
+</div>
+<div id="burt" class="row">
+    <img id="burt" src="~/images/burt_small.png" style="border-radius: 30px; margin-top: 10px; width:100%" />
+</div>
+<div id="loading" class="row" style="display:none; ">
+    <img src="~/images/circle-loading-animation.gif" style="width: 100%; border-radius:100px" />
 </div>
 
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script type="text/javascript">
+
+
+        function loading() {
+            $('#message').hide();
+            $('#burt').hide();
+            $('#loading').show();
+        }
+
+        function fileSelected() {
+            loading();
+            $('#uploadForm').submit();
+            $('#uploadForm').get(0).reset();
+        }
+
+    </script>
+
+}
